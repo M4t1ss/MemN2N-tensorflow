@@ -192,6 +192,19 @@ class MemN2N(object):
 
     def run(self, train_data, test_data):
         if not self.is_test:
+            # Load previous model if one exists
+            print(" [*] Checking ", self.checkpoint_dir, " for saved checkpoint")
+            ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
+            if ckpt and ckpt.model_checkpoint_path:
+                print(" [*] Saved checkpoint found!")
+                self.load()
+                test_loss = np.sum(self.test(test_data, label='Test'))
+
+                state = {
+                    'test_perplexity': math.exp(test_loss)
+                }
+                print(state)
+            # Run as usual
             for idx in xrange(self.nepoch):
                 train_loss = np.sum(self.train(train_data))
                 test_loss = np.sum(self.test(test_data, label='Validation'))
@@ -214,7 +227,7 @@ class MemN2N(object):
                     self.lr.assign(self.current_lr).eval()
                 if self.current_lr < 1e-5: break
 
-                if idx % 10 == 0:
+                if idx % 1 == 0:
                     self.saver.save(self.sess,
                                     os.path.join(self.checkpoint_dir, "MemN2N.model"),
                                     global_step = self.step.astype(int))
